@@ -34,7 +34,7 @@ public class ApplicationAuthenticationRequest extends Request<ApplicationAuthent
         super(Method.POST, Urls.TWITTER_TOKEN_URL, errorListener);
         this.listener = listener;
 
-        //create headers with
+        //create headers with authorization
         headers = new HashMap<String, String>(1);
         try {
             headers.put(AUTHORIZATION_HEADER, createAuthorizationHeader(consumerKey, consumerSecret));
@@ -97,10 +97,4 @@ public class ApplicationAuthenticationRequest extends Request<ApplicationAuthent
             return null;
         }
     }
-    //				HttpPost httpPost = new HttpPost(TwitterTokenURL);
-//				httpPost.setHeader("Authorization", "Basic " + base64Encoded);
-//				httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
-//				httpPost.setEntity(new StringEntity("grant_type=client_credentials"));
-//				String rawAuthorization = getResponseBody(httpPost);
-//				Authenticated auth = jsonToAuthenticated(rawAuthorization);
 }

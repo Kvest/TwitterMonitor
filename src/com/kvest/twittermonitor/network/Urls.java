@@ -9,4 +9,10 @@ package com.kvest.twittermonitor.network;
  */
 public abstract class Urls {
     public static final String TWITTER_TOKEN_URL = "https://api.twitter.com/oauth2/token";
+    public static final String TWITTER_SEARCH_URL = "https://api.twitter.com/1.1/search/tweets.json";
+    public static final String TWITTER_SEARCH_PARAM_Q = "q";
+    public static final String TWITTER_SEARCH_PARAM_RESULT_TYPE = "result_type";
+    public static final String TWITTER_SEARCH_PARAM_COUNT = "count";
+    public static final String TWITTER_SEARCH_PARAM_SINCE_ID = "since_id";
+    public static final String TWITTER_SEARCH_PARAM_MAX_ID = "max_id";
 }
