@@ -12,6 +12,14 @@ public class User {
     private boolean default_profile_image;
     private String profile_image_url;
 
+    public String getName() {
+        return name;
+    }
+
+    public String getProfileImageUrl() {
+        return default_profile_image ? "" : profile_image_url;
+    }
+
     @Override
     public String toString() {
         return name + " " + profile_image_url + "(" + default_profile_image + ")";
