@@ -3,9 +3,9 @@ package com.kvest.twittermonitor.ui.activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBarActivity;
 import android.text.TextUtils;
-import android.util.Log;
+import android.view.Window;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.kvest.twittermonitor.R;
@@ -22,7 +22,7 @@ import com.kvest.twittermonitor.ui.fragment.TweetsListFragment;
 
 import java.util.List;
 
-public class TweetsListActivity extends FragmentActivity implements TweetsListFragment.LoadMoreTweetsListener {
+public class TweetsListActivity extends ActionBarActivity implements TweetsListFragment.LoadMoreTweetsListener {
     private static final String TWITTER_CONSUMER_KEY = "JQ4LFL30eTA86eELxwnhA";
     private static final String TWITTER_CONSUMER_SECRET = "MI22TsCgYij2BTVjmtD3DpNwdL2nW7O0JT78y3xt2BM";
     private static final String TARGET_TOKEN_TYPE = "bearer";
@@ -48,6 +48,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        supportRequestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.main);
 
         //create search params
@@ -94,6 +95,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             @Override
             public void onResponse(TwitterSearchResponse response) {
                 isLoading = false;
+                notifyLoadingFinished();
 
                 //save loaded tweets
                 cacheTweets(response.getStatuses());
@@ -103,6 +105,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             @Override
             public void onResponse(TwitterSearchResponse response) {
                 isLoading = false;
+                notifyLoadingFinished();
 
                 //clear cache
                 getContentResolver().delete(TwitterMonitorProviderMetadata.TWEETS_URI, null, null);
@@ -117,6 +120,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             @Override
             public void onErrorResponse(VolleyError error) {
                 isLoading = false;
+                notifyLoadingFinished();
 
                 showErrorMessage(getString(R.string.get_access_token_error));
             }
@@ -126,6 +130,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             @Override
             public void onErrorResponse(VolleyError error) {
                 isLoading = false;
+                notifyLoadingFinished();
 
                 showErrorMessage(getString(R.string.get_tweets_error));
             }
@@ -137,6 +142,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         super.onPause();
 
         if (isFinishing()) {
+            setSupportProgressBarIndeterminateVisibility(false);
             VolleyHelper.getInstance().cancelAll(REQUESTS_TAG);
         }
     }
@@ -155,6 +161,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             return;
         }
         isLoading = true;
+        notifyLoading();
 
         if (isAccessTokenValid()) {
             loadTweets(reloadParams, reloadTweetsListener);
@@ -179,6 +186,7 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
             return;
         }
         isLoading = true;
+        notifyLoading();
 
         //set max id
         loadMoreParams.setMaxId(fromId);
@@ -214,6 +222,14 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         ApplicationAuthenticationRequest request = new ApplicationAuthenticationRequest(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, listener, getAccessTokenErrorListener);
         request.setTag(REQUESTS_TAG);
         VolleyHelper.getInstance().addRequest(request);
+    }
+
+    private void notifyLoading() {
+        setSupportProgressBarIndeterminateVisibility(true);
+    }
+
+    private void notifyLoadingFinished() {
+        setSupportProgressBarIndeterminateVisibility(false);
     }
 
     private void showErrorMessage(String message) {

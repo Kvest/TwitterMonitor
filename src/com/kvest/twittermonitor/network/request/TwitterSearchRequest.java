@@ -1,6 +1,5 @@
 package com.kvest.twittermonitor.network.request;
 
-import android.util.Log;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
@@ -22,6 +21,7 @@ import java.util.Map;
  * To change this template use File | Settings | File Templates.
  */
 public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
+    private static final int ARTIFICIAL_DELAY = 1000;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String AUTHORIZATION_PREFIX = "Bearer ";
 
@@ -45,6 +45,9 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
 
     @Override
     protected Response<TwitterSearchResponse> parseNetworkResponse(NetworkResponse response) {
+        //1 second delay
+        doArtificialDelay();
+
         try {
             String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
             return Response.success(gson.fromJson(json, TwitterSearchResponse.class),
@@ -52,6 +55,12 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
         } catch (UnsupportedEncodingException e) {
             return Response.error(new ParseError(e));
         }
+    }
+
+    private void doArtificialDelay() {
+        try {
+            Thread.sleep(ARTIFICIAL_DELAY);
+        } catch (InterruptedException ie) {};
     }
 
     public static class SearchParams {

@@ -12,7 +12,8 @@
 
     <application android:name=".core.TwitterMonitorApplication"
                  android:label="@string/app_name"
-                 android:icon="@drawable/ic_launcher">
+                 android:icon="@drawable/ic_launcher"
+                 android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
         <activity android:name=".ui.activity.TweetsListActivity"
                   android:label="@string/app_name">
             <intent-filter>
