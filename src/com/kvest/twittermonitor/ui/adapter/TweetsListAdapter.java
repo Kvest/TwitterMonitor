@@ -3,6 +3,7 @@ package com.kvest.twittermonitor.ui.adapter;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.SimpleCursorAdapter;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import com.kvest.twittermonitor.R;
@@ -60,6 +61,16 @@ public class TweetsListAdapter extends SimpleCursorAdapter implements SimpleCurs
         if ((cursor.getCount() - 1) == cursor.getPosition() && loadMoreListener != null) {
             loadMoreListener.loadMore(getItemId(cursor.getPosition()));
         }
+    }
+
+    @Override
+    public Cursor swapCursor(Cursor c) {
+        //if cursor not null and is empty - then reload tweets
+        if (c != null && c.getCount() == 0 && loadMoreListener != null) {
+            loadMoreListener.reload();
+        }
+
+        return super.swapCursor(c);
     }
 
     public void setLoadMoreListener(LoadMoreListener loadMoreListener) {

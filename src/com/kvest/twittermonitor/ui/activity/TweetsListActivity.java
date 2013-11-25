@@ -1,6 +1,7 @@
 package com.kvest.twittermonitor.ui.activity;
 
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.text.TextUtils;
@@ -8,16 +9,23 @@ import android.util.Log;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.kvest.twittermonitor.R;
+import com.kvest.twittermonitor.contentprovider.TwitterMonitorProviderMetadata;
+import com.kvest.twittermonitor.datamodel.Tweet;
 import com.kvest.twittermonitor.datastorage.SettingsSharedPreferencesStorage;
+import com.kvest.twittermonitor.datastorage.table.TweetsCache;
 import com.kvest.twittermonitor.network.VolleyHelper;
 import com.kvest.twittermonitor.network.request.ApplicationAuthenticationRequest;
 import com.kvest.twittermonitor.network.request.TwitterSearchRequest;
 import com.kvest.twittermonitor.network.response.ApplicationAuthenticationResponse;
+import com.kvest.twittermonitor.network.response.TwitterSearchResponse;
 import com.kvest.twittermonitor.ui.fragment.TweetsListFragment;
+
+import java.util.List;
 
 public class TweetsListActivity extends FragmentActivity implements TweetsListFragment.LoadMoreTweetsListener {
     private static final String TWITTER_CONSUMER_KEY = "JQ4LFL30eTA86eELxwnhA";
     private static final String TWITTER_CONSUMER_SECRET = "MI22TsCgYij2BTVjmtD3DpNwdL2nW7O0JT78y3xt2BM";
+    private static final String TARGET_TOKEN_TYPE = "bearer";
     private static final String REQUESTS_TAG = "requests";
     private static final String SEARCH_KEYWORD = "Android";
     private static final String SEARCH_RESULT_TYPE = "recent";
@@ -27,6 +35,9 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
     private TwitterSearchRequest.SearchParams loadMoreParams;
 
     private Response.ErrorListener getAccessTokenErrorListener;
+    private Response.ErrorListener getTweetsErrorListener;
+    private Response.Listener<TwitterSearchResponse> loadMoreTweetsListener;
+    private Response.Listener<TwitterSearchResponse> reloadTweetsListener;
 
     private String accessToken;
     private boolean isLoading;
@@ -48,55 +59,6 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         //load saved accessToken
         accessToken = SettingsSharedPreferencesStorage.getAccessToken(this);
         isLoading = false;
-
-        showErrorMessage(getString(R.string.get_access_token_error));
-
-//        String token = "AAAAAAAAAAAAAAAAAAAAAK26QgAAAAAAg9ESLMhBCsYa9PpP5Z5kuw0kLuU%3D21UG0hSRin9s45fVcf7dqoG5AvR8PaLGlGByOXHaWrFJA8xHbp";
-//        ApplicationAuthenticationRequest r = new ApplicationAuthenticationRequest("McNdweY7BOJXNYcNrlsRQ", "FdLYAayo6QAauKINXXdYQRXw5ZTx09EUNUKTr5BcUIA", new Response.Listener<ApplicationAuthenticationResponse>() {
-//            @Override
-//            public void onResponse(ApplicationAuthenticationResponse response) {
-//                Log.d("KVEST_TAG", response.getAccessToken());
-//            }
-//        }, new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                //To change body of implemented methods use File | Settings | File Templates.
-//            }
-//        });
-
-//        TwitterSearchRequest.SearchParams p = new TwitterSearchRequest.SearchParams("Android");
-//        p.setResultType("recent");
-//        p.setCount(50);
-//        //p.setSinceId(404823739680174080l);
-//        TwitterSearchRequest r = new TwitterSearchRequest(token, p, new Response.Listener<TwitterSearchResponse>() {
-//            @Override
-//            public void onResponse(TwitterSearchResponse response) {
-//                for (Tweet tweet : response.getStatuses()) {
-//                    ContentValues cv = new ContentValues(5);
-//                    cv.put(TweetsCache._ID, tweet.getId());
-//                    cv.put(TweetsCache.CREATION_DATE_COLUMN, tweet.getCreatedDate());
-//                    cv.put(TweetsCache.TEXT_COLUMN, tweet.getText());
-//                    cv.put(TweetsCache.USER_NAME_COLUMN, tweet.getUser().getName());
-//                    cv.put(TweetsCache.USER_PROFILE_IMAGE_COLUMN, tweet.getUser().getProfileImageUrl());
-//                    getContentResolver().insert(TwitterMonitorProviderMetadata.TWEETS_URI, cv);
-//                }
-//
-//                Cursor cursor = getContentResolver().query(TwitterMonitorProviderMetadata.TWEETS_URI, TweetsCache.FULL_PROJECTION, null, null, null);
-//                try {
-//                    Log.d("KVEST_TAG", "count=" + cursor.getCount());
-//                }  finally {
-//                    cursor.close();
-//                }
-//            }
-//        },
-//        new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                //To change body of implemented methods use File | Settings | File Templates.
-//            }
-//        });
-//        r.setTag(REQUESTS_TAG);
-//        VolleyHelper.getInstance().addRequest(r);
     }
 
     private void createSearchRequestParams() {
@@ -109,13 +71,63 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         loadMoreParams.setCount(SEARCH_COUNT);
     }
 
+    private void cacheTweets(final List<Tweet> tweets) {
+        //put all tweets in cache(in new thread because we shouldn't stop the main thread for a long time)
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (Tweet tweet : tweets) {
+                    ContentValues contentValues = new ContentValues(5);
+                    contentValues.put(TweetsCache._ID, tweet.getId());
+                    contentValues.put(TweetsCache.CREATION_DATE_COLUMN, tweet.getCreatedDate());
+                    contentValues.put(TweetsCache.TEXT_COLUMN, tweet.getText());
+                    contentValues.put(TweetsCache.USER_NAME_COLUMN, tweet.getUser().getName());
+                    contentValues.put(TweetsCache.USER_PROFILE_IMAGE_COLUMN, tweet.getUser().getProfileImageUrl());
+                    getContentResolver().insert(TwitterMonitorProviderMetadata.TWEETS_URI, contentValues);
+                }
+            }
+        }).start();
+    }
+
     private void createListeners() {
+        loadMoreTweetsListener = new Response.Listener<TwitterSearchResponse>() {
+            @Override
+            public void onResponse(TwitterSearchResponse response) {
+                isLoading = false;
+
+                //save loaded tweets
+                cacheTweets(response.getStatuses());
+            }
+        };
+        reloadTweetsListener = new Response.Listener<TwitterSearchResponse>() {
+            @Override
+            public void onResponse(TwitterSearchResponse response) {
+                isLoading = false;
+
+                //clear cache
+                getContentResolver().delete(TwitterMonitorProviderMetadata.TWEETS_URI, null, null);
+
+                //save loaded tweets
+                cacheTweets(response.getStatuses());
+            }
+        };
+
+        //error listeners
         getAccessTokenErrorListener = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 isLoading = false;
 
                 showErrorMessage(getString(R.string.get_access_token_error));
+            }
+        };
+
+        getTweetsErrorListener = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                isLoading = false;
+
+                showErrorMessage(getString(R.string.get_tweets_error));
             }
         };
     }
@@ -142,12 +154,21 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         if (isLoading) {
             return;
         }
+        isLoading = true;
 
         if (isAccessTokenValid()) {
-            //TODO
+            loadTweets(reloadParams, reloadTweetsListener);
         } else {
-            //TODO
-            //getAccessToken()
+            getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
+                @Override
+                public void onResponse(ApplicationAuthenticationResponse response) {
+                    if (TARGET_TOKEN_TYPE.equals(response.getTokenType())) {
+                        setAccessToken(response.getAccessToken());
+
+                        loadTweets(reloadParams, reloadTweetsListener);
+                    }
+                }
+            });
         }
     }
 
@@ -157,17 +178,36 @@ public class TweetsListActivity extends FragmentActivity implements TweetsListFr
         if (isLoading) {
             return;
         }
+        isLoading = true;
 
         //set max id
         loadMoreParams.setMaxId(fromId);
 
         if (isAccessTokenValid()) {
-            //TODO
+            loadTweets(loadMoreParams, loadMoreTweetsListener);
         } else {
-            //TODO
-            //getAccessToken();
+            getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
+                @Override
+                public void onResponse(ApplicationAuthenticationResponse response) {
+                    if (TARGET_TOKEN_TYPE.equals(response.getTokenType())) {
+                        setAccessToken(response.getAccessToken());
+
+                        loadTweets(loadMoreParams, loadMoreTweetsListener);
+                    }
+                }
+            });
         }
-        Log.d("KVEST_TAG", "loadMoreTweets " + fromId);
+    }
+
+    private void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+        SettingsSharedPreferencesStorage.setAccessToken(this, this.accessToken);
+    }
+
+    private void loadTweets(TwitterSearchRequest.SearchParams params, Response.Listener<TwitterSearchResponse> listener) {
+        TwitterSearchRequest request = new TwitterSearchRequest(accessToken, params, listener, getTweetsErrorListener);
+        request.setTag(REQUESTS_TAG);
+        VolleyHelper.getInstance().addRequest(request);
     }
 
     private void getAccessToken(Response.Listener<ApplicationAuthenticationResponse> listener) {

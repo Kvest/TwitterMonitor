@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Twitter monitor</string>
     <string name="get_access_token_error">Can\'t get access token from Twitter</string>
+    <string name="get_tweets_error">Can\'t get tweets from Twitter</string>
 </resources>
