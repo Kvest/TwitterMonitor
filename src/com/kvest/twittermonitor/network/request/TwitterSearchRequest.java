@@ -105,7 +105,6 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
                 result += "&" + Urls.TWITTER_SEARCH_PARAM_MAX_ID + "=" + Long.toString(maxId);
             }
 
-            Log.d("KVEST_TAG", result);
             return result;
         }
 
