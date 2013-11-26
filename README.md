@@ -13,3 +13,7 @@ Interaction with Twitter API:
 To get tweets from Tweeter the application uses a "search" request.
 Because Twitter API 1.0 now is not available, it should be used Twitter API 1.1. A "Search" request from API 1.1 requires authentication. 
 But it is enough to use "Application-only authentication"(See https://dev.twitter.com/docs/auth/application-only-auth).
+
+Ways to improve application:
+- Add an access token validation
+- Add a full handling of network errors
