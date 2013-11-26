@@ -54,14 +54,6 @@ public class VolleyHelper {
         }
     }
 
-    public ImageLoader.ImageContainer getImageContainer(String requestUrl, final ImageLoader.ImageListener listener) {
-        if (imageLoader != null) {
-            return imageLoader.get(requestUrl, listener);
-        } else {
-            return null;
-        }
-    }
-
     public ImageLoader getImageLoader() {
         return imageLoader;
     }

@@ -5,8 +5,11 @@ import android.database.Cursor;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
+import com.android.volley.toolbox.NetworkImageView;
 import com.kvest.twittermonitor.R;
+import com.kvest.twittermonitor.network.VolleyHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -41,6 +44,12 @@ public class TweetsListAdapter extends SimpleCursorAdapter implements SimpleCurs
         if (view.getId() == R.id.tweet_date) {
             Date date = new Date(cursor.getLong(columnIndex));
             ((TextView)view).setText(dateFormat.format(date));
+
+            return true;
+        }
+        if (view.getId() == R.id.profile_image) {
+            ((NetworkImageView)view).setDefaultImageResId(R.drawable.default_profile);
+            ((NetworkImageView)view).setImageUrl(cursor.getString(columnIndex), VolleyHelper.getInstance().getImageLoader());
 
             return true;
         }

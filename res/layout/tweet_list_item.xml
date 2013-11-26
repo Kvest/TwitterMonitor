@@ -3,12 +3,21 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+    <com.android.volley.toolbox.NetworkImageView
+        android:id="@+id/profile_image"
+        android:layout_width="@dimen/profile_image_size"
+        android:layout_height="@dimen/profile_image_size"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:padding="4dip" />
+
     <TextView
         android:id="@+id/user_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
+        android:layout_toRightOf="@id/profile_image"
+        android:textColor="@color/user_name_text_color"
         android:singleLine="true"
         android:ellipsize="end"/>
     <TextView
@@ -16,13 +25,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@id/user_name"
         android:layout_alignParentRight="true"
+        android:textColor="@color/date_text_color"
         android:singleLine="true"
         android:ellipsize="end" />
     <TextView
         android:id="@+id/tweet_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/profile_image"
         android:layout_below="@id/user_name" />
 </RelativeLayout>

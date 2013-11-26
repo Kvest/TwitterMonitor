@@ -40,7 +40,7 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
 
         //create and set adapter
         String[] from = {TweetsCache.CREATION_DATE_COLUMN, TweetsCache.TEXT_COLUMN, TweetsCache.USER_NAME_COLUMN, TweetsCache.USER_PROFILE_IMAGE_COLUMN };
-        int[] to = {R.id.tweet_date, R.id.tweet_text, R.id.user_name};
+        int[] to = {R.id.tweet_date, R.id.tweet_text, R.id.user_name, R.id.profile_image};
         adapter = new TweetsListAdapter(getActivity(), R.layout.tweet_list_item, null, from, to, TweetsListAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
         adapter.setLoadMoreListener(this);
         setListAdapter(adapter);
