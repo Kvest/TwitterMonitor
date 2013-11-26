@@ -3,9 +3,7 @@ package com.kvest.twittermonitor.ui.adapter;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.SimpleCursorAdapter;
-import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 import com.android.volley.toolbox.NetworkImageView;
 import com.kvest.twittermonitor.R;
@@ -25,8 +23,6 @@ public class TweetsListAdapter extends SimpleCursorAdapter implements SimpleCurs
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private SimpleDateFormat dateFormat;
-    private LoadMoreListener loadMoreListener;
-    private boolean firstCall = true;
 
     public TweetsListAdapter(Context context, int layout, Cursor cursor, String[] from, int[] to, int flags) {
         super(context, layout, cursor, from, to, flags);
@@ -55,39 +51,5 @@ public class TweetsListAdapter extends SimpleCursorAdapter implements SimpleCurs
         }
 
         return false;
-    }
-
-    @Override
-    public void bindView(View view, Context context, Cursor cursor) {
-        super.bindView(view, context, cursor);
-
-        if (cursor.getPosition() == 0) {
-            if (!firstCall && loadMoreListener != null) {
-                loadMoreListener.reload();
-            }
-            firstCall = false;
-        }
-        if ((cursor.getCount() - 1) == cursor.getPosition() && loadMoreListener != null) {
-            loadMoreListener.loadMore(getItemId(cursor.getPosition()));
-        }
-    }
-
-    @Override
-    public Cursor swapCursor(Cursor c) {
-        //if cursor not null and is empty - then reload tweets
-        if (c != null && c.getCount() == 0 && loadMoreListener != null) {
-            loadMoreListener.reload();
-        }
-
-        return super.swapCursor(c);
-    }
-
-    public void setLoadMoreListener(LoadMoreListener loadMoreListener) {
-        this.loadMoreListener = loadMoreListener;
-    }
-
-    public interface LoadMoreListener {
-        public void reload();
-        public void loadMore(long fromId);
     }
 }

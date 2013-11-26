@@ -10,6 +10,7 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.view.View;
+import android.widget.AbsListView;
 import com.kvest.twittermonitor.R;
 import com.kvest.twittermonitor.contentprovider.TwitterMonitorProviderMetadata;
 import com.kvest.twittermonitor.datastorage.table.TweetsCache;
@@ -22,11 +23,15 @@ import com.kvest.twittermonitor.ui.adapter.TweetsListAdapter;
  * Time: 19:20
  * To change this template use File | Settings | File Templates.
  */
-public class TweetsListFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor>, TweetsListAdapter.LoadMoreListener {
+public class TweetsListFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private static final String ORDER = "\"" + TweetsCache.CREATION_DATE_COLUMN + "\" DESC";
 
     private static final int LOAD_TWEETS_ID = 0;
     private TweetsListAdapter adapter;
+
+    //for monitoring list's visible items
+    private int firstVisibleTweet;
+    private int lastVisibleTweet;
 
     private LoadMoreTweetsListener loadMoreTweetsListener;
 
@@ -34,15 +39,35 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        firstVisibleTweet = 0;
+        lastVisibleTweet = 0;
+
         //don't show click on items
         getListView().setSelector(new ColorDrawable(Color.TRANSPARENT));
         getListView().setCacheColorHint(Color.TRANSPARENT);
+
+        getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {}
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (firstVisibleTweet > 0 && firstVisibleItem == 0) {
+                    reload();
+                } else if ((firstVisibleItem + visibleItemCount) == totalItemCount && (firstVisibleItem + visibleItemCount) != lastVisibleTweet) {
+                    loadMore(adapter.getItemId(totalItemCount - 1));
+                }
+
+                //remember visible items
+                firstVisibleTweet = firstVisibleItem;
+                lastVisibleTweet = firstVisibleItem + visibleItemCount;
+            }
+        });
 
         //create and set adapter
         String[] from = {TweetsCache.CREATION_DATE_COLUMN, TweetsCache.TEXT_COLUMN, TweetsCache.USER_NAME_COLUMN, TweetsCache.USER_PROFILE_IMAGE_COLUMN };
         int[] to = {R.id.tweet_date, R.id.tweet_text, R.id.user_name, R.id.profile_image};
         adapter = new TweetsListAdapter(getActivity(), R.layout.tweet_list_item, null, from, to, TweetsListAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
-        adapter.setLoadMoreListener(this);
         setListAdapter(adapter);
 
         //load cursor
@@ -69,6 +94,11 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        //if tweets list is empty - load list
+        if (cursor.getCount() == 0) {
+            reload();
+        }
+
         adapter.swapCursor(cursor);
     }
 
@@ -77,14 +107,12 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
         adapter.swapCursor(null);
     }
 
-    @Override
     public void reload() {
         if (loadMoreTweetsListener != null) {
             loadMoreTweetsListener.reloadTweets();
         }
     }
 
-    @Override
     public void loadMore(long fromId) {
         if (loadMoreTweetsListener != null) {
             loadMoreTweetsListener.loadMoreTweets(fromId);
