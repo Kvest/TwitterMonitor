@@ -49,7 +49,9 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
         doArtificialDelay();
 
         try {
+            //get string response
             String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
+            //Parse string response with Gson
             return Response.success(gson.fromJson(json, TwitterSearchResponse.class),
                                     HttpHeaderParser.parseCacheHeaders(response));
         } catch (UnsupportedEncodingException e) {
@@ -63,6 +65,7 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
         } catch (InterruptedException ie) {};
     }
 
+    //Class - wrapper for search request params
     public static class SearchParams {
         private static final String DEFAULT_RESULT_TYPE = "mixed";
         private static final int DEFAULT_COUNT = 100;

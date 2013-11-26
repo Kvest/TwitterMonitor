@@ -31,15 +31,18 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
     private static final String SEARCH_RESULT_TYPE = "recent";
     private static final int SEARCH_COUNT = 25;
 
+    //search request params
     private TwitterSearchRequest.SearchParams reloadParams;
     private TwitterSearchRequest.SearchParams loadMoreParams;
 
+    //listeners for requests
     private Response.ErrorListener getAccessTokenErrorListener;
     private Response.ErrorListener getTweetsErrorListener;
     private Response.Listener<TwitterSearchResponse> loadMoreTweetsListener;
     private Response.Listener<TwitterSearchResponse> reloadTweetsListener;
 
     private String accessToken;
+    //flag for protecting sending request twice
     private boolean isLoading;
 
     /**
@@ -59,6 +62,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
         //load saved accessToken
         accessToken = SettingsSharedPreferencesStorage.getAccessToken(this);
+
         isLoading = false;
     }
 
@@ -91,6 +95,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
     }
 
     private void createListeners() {
+        //response listeners
         loadMoreTweetsListener = new Response.Listener<TwitterSearchResponse>() {
             @Override
             public void onResponse(TwitterSearchResponse response) {
@@ -142,6 +147,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
         super.onPause();
 
         if (isFinishing()) {
+            //if activity is finishing - cancel requests
             setSupportProgressBarIndeterminateVisibility(false);
             VolleyHelper.getInstance().cancelAll(REQUESTS_TAG);
         }
@@ -156,23 +162,29 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
     @Override
     public void reloadTweets() {
-        //don't load twice
+        //don't make request twice
         if (isLoading) {
             return;
         }
         isLoading = true;
         notifyLoading();
 
+        //if we have valid access token - send tweets request, otherwise - send request access token
         if (isAccessTokenValid()) {
             loadTweets(reloadParams, reloadTweetsListener);
         } else {
             getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
                 @Override
                 public void onResponse(ApplicationAuthenticationResponse response) {
+                    //check if we received required token type
                     if (TARGET_TOKEN_TYPE.equals(response.getTokenType())) {
+                        //save access token
                         setAccessToken(response.getAccessToken());
 
+                        //send tweets request
                         loadTweets(reloadParams, reloadTweetsListener);
+                    } else {
+                        onWrongTokenType();
                     }
                 }
             });
@@ -181,7 +193,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
     @Override
     public void loadMoreTweets(long fromId) {
-        //don't load twice
+        //don't make request twice
         if (isLoading) {
             return;
         }
@@ -191,16 +203,22 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
         //set max id
         loadMoreParams.setMaxId(fromId);
 
+        //if we have valid access token - send tweets request, otherwise - send request access token
         if (isAccessTokenValid()) {
             loadTweets(loadMoreParams, loadMoreTweetsListener);
         } else {
             getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
                 @Override
                 public void onResponse(ApplicationAuthenticationResponse response) {
+                    //check if we received required token type
                     if (TARGET_TOKEN_TYPE.equals(response.getTokenType())) {
+                        //save access token
                         setAccessToken(response.getAccessToken());
 
+                        //send tweets request
                         loadTweets(loadMoreParams, loadMoreTweetsListener);
+                    } else {
+                        onWrongTokenType();
                     }
                 }
             });
@@ -230,6 +248,13 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
     private void notifyLoadingFinished() {
         setSupportProgressBarIndeterminateVisibility(false);
+    }
+
+    private void onWrongTokenType() {
+        isLoading = false;
+        notifyLoadingFinished();
+
+        showErrorMessage(getString(R.string.wrong_token_type_error));
     }
 
     private void showErrorMessage(String message) {

@@ -25,15 +25,14 @@ import com.kvest.twittermonitor.ui.adapter.TweetsListAdapter;
  */
 public class TweetsListFragment extends ListFragment implements LoaderManager.LoaderCallbacks<Cursor> {
     private static final String ORDER = "\"" + TweetsCache.CREATION_DATE_COLUMN + "\" DESC";
-
     private static final int LOAD_TWEETS_ID = 0;
+
     private TweetsListAdapter adapter;
+    private LoadMoreTweetsListener loadMoreTweetsListener;
 
     //for monitoring list's visible items
     private int firstVisibleTweet;
     private int lastVisibleTweet;
-
-    private LoadMoreTweetsListener loadMoreTweetsListener;
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -53,8 +52,10 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 if (firstVisibleTweet > 0 && firstVisibleItem == 0) {
+                    //user has scrolled to the top of the list
                     reload();
                 } else if ((firstVisibleItem + visibleItemCount) == totalItemCount && (firstVisibleItem + visibleItemCount) != lastVisibleTweet) {
+                    //user has scrolled to the bottom of the list
                     loadMore(adapter.getItemId(totalItemCount - 1));
                 }
 
@@ -94,7 +95,7 @@ public class TweetsListFragment extends ListFragment implements LoaderManager.Lo
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        //if tweets list is empty - load list
+        //if tweets list is empty - load first "page"
         if (cursor.getCount() == 0) {
             reload();
         }

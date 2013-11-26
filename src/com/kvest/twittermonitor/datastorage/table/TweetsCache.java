@@ -12,6 +12,7 @@ import android.provider.BaseColumns;
 public class TweetsCache implements BaseColumns {
     public static final String TABLE_NAME = "tweets_cache";
 
+    //table columns
     public static final String CREATION_DATE_COLUMN = "creation_date";
     public static final String TEXT_COLUMN = "text";
     public static final String USER_NAME_COLUMN = "user_name";

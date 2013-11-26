@@ -23,7 +23,7 @@ public class TwitterMonitorSQLStorage  extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase database) {
-        //create all tables and triggers
+        //create all tables
         database.execSQL(TweetsCache.CREATE_TABLE_SQL);
     }
 

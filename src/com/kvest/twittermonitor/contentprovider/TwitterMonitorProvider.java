@@ -22,6 +22,7 @@ import com.kvest.twittermonitor.datastorage.table.TweetsCache;
 public class TwitterMonitorProvider extends ContentProvider {
     private TwitterMonitorSQLStorage sqlStorage;
 
+    //indicators for UriMatcher
     private static final int TWEETS_URI_INDICATOR = 1;
     private static final int TWEET_URI_INDICATOR = 2;
 
@@ -56,7 +57,7 @@ public class TwitterMonitorProvider extends ContentProvider {
                 throw new IllegalArgumentException("Unknown uri = " + uri);
         }
 
-        //make query
+        //make a query
         SQLiteDatabase db = sqlStorage.getReadableDatabase();
         Cursor cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
 

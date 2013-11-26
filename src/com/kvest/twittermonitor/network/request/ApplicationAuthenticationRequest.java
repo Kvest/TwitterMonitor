@@ -65,7 +65,9 @@ public class ApplicationAuthenticationRequest extends Request<ApplicationAuthent
     @Override
     protected Response<ApplicationAuthenticationResponse> parseNetworkResponse(NetworkResponse response) {
         try {
+            //get string response
             String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
+            //Parse string response with Gson
             Gson gson = new Gson();
             return Response.success(gson.fromJson(json, ApplicationAuthenticationResponse.class),
                                     HttpHeaderParser.parseCacheHeaders(response));

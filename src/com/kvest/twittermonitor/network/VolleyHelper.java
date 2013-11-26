@@ -19,6 +19,7 @@ import com.kvest.twittermonitor.core.TwitterMonitorApplication;
 public class VolleyHelper {
     private static final float DEFAULT_MEM_CACHE_PERCENT = 0.6f;
 
+    //For implementing Singleton
     private static VolleyHelper instance;
     private static final Object lock = new Object();
 
