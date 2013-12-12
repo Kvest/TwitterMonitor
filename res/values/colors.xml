@@ -2,4 +2,5 @@
 <resources>
     <color name="user_name_text_color">#828282</color>
     <color name="date_text_color">#828282</color>
+    <color name="tweet_list_item_bg">#559988</color>
 </resources>
