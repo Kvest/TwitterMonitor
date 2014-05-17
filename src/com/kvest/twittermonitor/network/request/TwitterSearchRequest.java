@@ -6,11 +6,13 @@ import com.android.volley.Response;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.JsonRequest;
 import com.google.gson.Gson;
+import com.kvest.twittermonitor.datamodel.Tweet;
 import com.kvest.twittermonitor.network.Urls;
 import com.kvest.twittermonitor.network.response.TwitterSearchResponse;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,11 +29,15 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
 
     private static Gson gson = new Gson();
     private Map<String, String> headers;
+    private TweetsResultProcessor tweetsResultProcessor;
 
     public TwitterSearchRequest(String access_token, SearchParams params,
+                                TweetsResultProcessor tweetsResultProcessor,
                                 Response.Listener<TwitterSearchResponse> listener,
                                 Response.ErrorListener errorListener) {
         super(Method.GET, Urls.TWITTER_SEARCH_URL + "?" + params.toString(), null, listener, errorListener);
+
+        this.tweetsResultProcessor = tweetsResultProcessor;
 
         //create headers with authorization
         headers = new HashMap<String, String>(1);
@@ -52,8 +58,14 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
             //get string response
             String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
             //Parse string response with Gson
-            return Response.success(gson.fromJson(json, TwitterSearchResponse.class),
-                                    HttpHeaderParser.parseCacheHeaders(response));
+            TwitterSearchResponse twitterSearchResponse = gson.fromJson(json, TwitterSearchResponse.class);
+
+            //process tweets
+            if (twitterSearchResponse != null && tweetsResultProcessor != null) {
+                tweetsResultProcessor.processTweets(twitterSearchResponse.getStatuses());
+            }
+
+            return Response.success(twitterSearchResponse, HttpHeaderParser.parseCacheHeaders(response));
         } catch (UnsupportedEncodingException e) {
             return Response.error(new ParseError(e));
         }
@@ -120,5 +132,9 @@ public class TwitterSearchRequest extends JsonRequest<TwitterSearchResponse> {
             return result;
         }
 
+    }
+
+    public interface TweetsResultProcessor {
+        public void processTweets(List<Tweet> tweets);
     }
 }

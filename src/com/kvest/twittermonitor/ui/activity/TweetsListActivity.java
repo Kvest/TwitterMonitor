@@ -38,8 +38,9 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
     //listeners for requests
     private Response.ErrorListener getAccessTokenErrorListener;
     private Response.ErrorListener getTweetsErrorListener;
-    private Response.Listener<TwitterSearchResponse> loadMoreTweetsListener;
-    private Response.Listener<TwitterSearchResponse> reloadTweetsListener;
+    private Response.Listener<TwitterSearchResponse> responseListener;
+    private TwitterSearchRequest.TweetsResultProcessor loadMoreTweetsProcessor;
+    private TwitterSearchRequest.TweetsResultProcessor reloadTweetsProcessor;
 
     private String accessToken;
     //flag for protecting sending request twice
@@ -76,47 +77,44 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
         loadMoreParams.setCount(SEARCH_COUNT);
     }
 
-    private void cacheTweets(final List<Tweet> tweets) {
-        //put all tweets in cache(in new thread because we shouldn't stop the main thread for a long time)
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (Tweet tweet : tweets) {
-                    ContentValues contentValues = new ContentValues(5);
-                    contentValues.put(TweetsCache._ID, tweet.getId());
-                    contentValues.put(TweetsCache.CREATION_DATE_COLUMN, tweet.getCreatedDate());
-                    contentValues.put(TweetsCache.TEXT_COLUMN, tweet.getText());
-                    contentValues.put(TweetsCache.USER_NAME_COLUMN, tweet.getUser().getName());
-                    contentValues.put(TweetsCache.USER_PROFILE_IMAGE_COLUMN, tweet.getUser().getProfileImageUrl());
-                    getContentResolver().insert(TwitterMonitorProviderMetadata.TWEETS_URI, contentValues);
-                }
-            }
-        }).start();
+    private void cacheTweets(List<Tweet> tweets) {
+        //put all tweets in cache
+        ContentValues[] contentValues = new ContentValues[tweets.size()];
+        for (int i = 0; i < tweets.size(); ++i) {
+            contentValues[i] = new ContentValues(5);
+            contentValues[i].put(TweetsCache._ID, tweets.get(i).getId());
+            contentValues[i].put(TweetsCache.CREATION_DATE_COLUMN, tweets.get(i).getCreatedDate());
+            contentValues[i].put(TweetsCache.TEXT_COLUMN, tweets.get(i).getText());
+            contentValues[i].put(TweetsCache.USER_NAME_COLUMN, tweets.get(i).getUser().getName());
+            contentValues[i].put(TweetsCache.USER_PROFILE_IMAGE_COLUMN, tweets.get(i).getUser().getProfileImageUrl());
+        }
+        getContentResolver().bulkInsert(TwitterMonitorProviderMetadata.TWEETS_URI, contentValues);
     }
 
     private void createListeners() {
         //response listeners
-        loadMoreTweetsListener = new Response.Listener<TwitterSearchResponse>() {
+        responseListener = new Response.Listener<TwitterSearchResponse>() {
             @Override
             public void onResponse(TwitterSearchResponse response) {
                 isLoading = false;
                 notifyLoadingFinished();
-
-                //save loaded tweets
-                cacheTweets(response.getStatuses());
             }
         };
-        reloadTweetsListener = new Response.Listener<TwitterSearchResponse>() {
+        loadMoreTweetsProcessor = new TwitterSearchRequest.TweetsResultProcessor() {
             @Override
-            public void onResponse(TwitterSearchResponse response) {
-                isLoading = false;
-                notifyLoadingFinished();
-
+            public void processTweets(List<Tweet> tweets) {
+                //save loaded tweets
+                cacheTweets(tweets);
+            }
+        };
+        reloadTweetsProcessor = new TwitterSearchRequest.TweetsResultProcessor() {
+            @Override
+            public void processTweets(List<Tweet> tweets) {
                 //clear cache
                 getContentResolver().delete(TwitterMonitorProviderMetadata.TWEETS_URI, null, null);
 
                 //save loaded tweets
-                cacheTweets(response.getStatuses());
+                cacheTweets(tweets);
             }
         };
 
@@ -171,7 +169,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
         //if we have valid access token - send tweets request, otherwise - send request access token
         if (isAccessTokenValid()) {
-            loadTweets(reloadParams, reloadTweetsListener);
+            loadTweets(reloadParams, reloadTweetsProcessor, responseListener);
         } else {
             getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
                 @Override
@@ -182,7 +180,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
                         setAccessToken(response.getAccessToken());
 
                         //send tweets request
-                        loadTweets(reloadParams, reloadTweetsListener);
+                        loadTweets(reloadParams, reloadTweetsProcessor, responseListener);
                     } else {
                         onWrongTokenType();
                     }
@@ -205,7 +203,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
 
         //if we have valid access token - send tweets request, otherwise - send request access token
         if (isAccessTokenValid()) {
-            loadTweets(loadMoreParams, loadMoreTweetsListener);
+            loadTweets(loadMoreParams, loadMoreTweetsProcessor, responseListener);
         } else {
             getAccessToken(new Response.Listener<ApplicationAuthenticationResponse>() {
                 @Override
@@ -216,7 +214,7 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
                         setAccessToken(response.getAccessToken());
 
                         //send tweets request
-                        loadTweets(loadMoreParams, loadMoreTweetsListener);
+                        loadTweets(loadMoreParams, loadMoreTweetsProcessor, responseListener);
                     } else {
                         onWrongTokenType();
                     }
@@ -230,8 +228,10 @@ public class TweetsListActivity extends ActionBarActivity implements TweetsListF
         SettingsSharedPreferencesStorage.setAccessToken(this, this.accessToken);
     }
 
-    private void loadTweets(TwitterSearchRequest.SearchParams params, Response.Listener<TwitterSearchResponse> listener) {
-        TwitterSearchRequest request = new TwitterSearchRequest(accessToken, params, listener, getTweetsErrorListener);
+    private void loadTweets(TwitterSearchRequest.SearchParams params,
+                            TwitterSearchRequest.TweetsResultProcessor processor,
+                            Response.Listener<TwitterSearchResponse> listener) {
+        TwitterSearchRequest request = new TwitterSearchRequest(accessToken, params, processor, listener, getTweetsErrorListener);
         request.setTag(REQUESTS_TAG);
         VolleyHelper.getInstance().addRequest(request);
     }
